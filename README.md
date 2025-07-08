@@ -31,6 +31,22 @@ allel==1.2.1
 
 Link: [scikit-allel](https://scikit-allel.readthedocs.io/en/stable/)
 
+## Installation
+
+From the root of the repository:
+
+```bash
+pip install ./pg_gan
+```
+
+## Usage
+
+Import the package in your Python code:
+
+```python
+from pg_gan import discriminator
+```
+
 ## Demographic models
 
 There are currently six demographic models implemented in `pg-gan` (see below for information about adding your own model). Use the `-m` flag

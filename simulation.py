@@ -9,12 +9,10 @@ import math
 import msprime
 
 # from stdpopsim
-import sps.engines
-import sps.species
-import sps.HomSap
+from . import sps
 
 # our imports
-import global_vars
+from . import global_vars
 
 ################################################################################
 # SIMULATION

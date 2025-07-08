@@ -14,10 +14,9 @@ import tensorflow as tf
 import scipy.stats
 
 # our imports
-import discriminator
-import global_vars
-import util
-from real_data_random import Region
+from . import discriminator
+from . import global_vars
+from . import util
 
 # globals for simulated annealing
 NUM_ITER = 300

@@ -10,11 +10,11 @@ import optparse
 import sys
 
 # our imports
-import generator
-import global_vars
-from param_set import ParamSet
-import real_data_random
-import simulation
+from . import generator
+from . import global_vars
+from .param_set import ParamSet
+from . import real_data_random
+from . import simulation
 
 def parse_params(param_input, simulator):
     """See which params were desired for inference"""

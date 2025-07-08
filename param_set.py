@@ -10,7 +10,7 @@ from scipy.stats import norm
 import sys
 
 # our imports
-import simulation
+from . import simulation
 
 class Parameter:
     """

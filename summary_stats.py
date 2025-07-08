@@ -13,9 +13,9 @@ import seaborn as sns
 import sys
 
 # our imports
-import global_vars
-import ss_helpers
-import util
+from . import global_vars
+from . import ss_helpers
+from . import util
 
 # globals
 NUM_TRIAL = 5000

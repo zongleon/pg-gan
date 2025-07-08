@@ -13,7 +13,7 @@ import numpy as np
 import seaborn as sns
 
 # our imports
-import global_vars
+from . import global_vars
 
 # GLOBALS
 NUM_SFS = 10
