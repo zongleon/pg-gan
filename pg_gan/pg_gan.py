@@ -73,7 +73,7 @@ def main():
 ################################################################################
 
 def simulated_annealing(generator, disc, iterator, iterable_params, seed,
-    toy=False):
+    toy=False, prefix=None):
     """Main function that drives GAN updates"""
 
     # main object for pg-gan

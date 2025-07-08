@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pg_gan"
+version = "0.1.0"
+description = "TODO"
+authors = [
+    {name = "TODO", email = "name@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    tensorflow==2.12
+    msprime
+    h5py
+    allel
+]
+
+[tool.setuptools]
+[tool.setuptools.packages.find]
+exclude = ["figs*", "prep_data*"]

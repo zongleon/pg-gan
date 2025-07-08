@@ -28,8 +28,8 @@ class OnePopModel(Model):
 
         # change from 128,128 to 32,32,16 (same # params)
         self.fc_size = kwargs["fc_size"]
-        self.fc1 = Dense(64, activation='relu')
-        self.fc2 = Dense(64, activation='relu')
+        self.fc1 = Dense(self.fc_size, activation='relu', name="fc1")
+        self.fc2 = Dense(self.fc_size, activation='relu', name="fc2")
         self.dense3 = Dense(1)#2, activation='softmax') # two classes
 
         #self.pop = pop

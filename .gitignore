@@ -1,3 +1,4 @@
 *.DS_Store
-*.pyc
+*.py[cod]
 *.egg-info/
+__pycache__/

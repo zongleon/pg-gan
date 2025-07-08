@@ -1,5 +1,0 @@
-include README.md
-recursive-include pg_gan *.py
-recursive-include pg_gan/figs *
-recursive-include pg_gan/prep_data *
-recursive-include pg_gan/sps *
