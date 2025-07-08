@@ -22,8 +22,10 @@ TRIAL_DATA = { 'model': 'const', 'params': 'Ne', 'data_h5': None,
 # section C: summary stats customization----------------------------------------
 SS_SHOW_TITLE = False
 
-COLOR_DICT = {"YRI": "darkorange","CEU": "blue","CHB": "green", "MXL": "red",
-              "simulation": "gray", "msprime": "purple"}
+COLOR_DICT = {"YRI": "darkorange", "ESN": "darkorange", "CEU": "blue",
+              "GBR": "blue", "CHB": "green", "CHS": "green", "MXL": "red",
+              "simulation": "gray", "msprime": "purple",
+              "GHIST-bottleneck": "green", "GHIST-split-isolation": "blue"}
 
 SS_LABELS = []
 SS_COLORS = []
@@ -52,8 +54,9 @@ def update_ss_labels(pop_names, num_pops = 1):
     else:
         pop_labels = pop_names.split("_")
 
-    SS_LABELS.extend(pop_labels)
+    SS_LABELS.extend(pop_labels[:1]) # TODO hack
     SS_LABELS.append("simulation")
+    #print(SS_LABELS)
 
     # colors for plotting, ex ["blue", "darkorange", "green", "gray"] (last is traditionally gray)
     for label in SS_LABELS:

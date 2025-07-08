@@ -76,6 +76,14 @@ class ParamSet:
         if simulator == simulation.const:
             param_set["Ne"] = Parameter(10000, 1000, 30000)
 
+        # bottleneck model from GHIST
+        elif simulator == simulation.bottleneck:
+            self.N1 = Parameter(10000, 1000, 30000, "N1")
+            self.N2 = Parameter(5000, 500, 15000, "N2")
+            self.T1 = Parameter(1000, 500, 2000, "T1")
+            self.reco = Parameter(1.007e-8, 1e-9, 1e-7, "reco")
+            self.mut = Parameter(1.26e-8, 1e-9, 1e-7, "mut")
+
         # exponential growth model
         elif simulator == simulation.exp:
             param_set["N1"] = Parameter(9000, 1000, 30000)
@@ -84,7 +92,7 @@ class ParamSet:
             param_set["T2"] = Parameter(350, 100, 1500)
             param_set["growth"] = Parameter(0.005, 0.0, 0.05)
 
-        # Isolation with Migration model
+        # Isolation with Migration model, modified for GHIST
         elif simulator == simulation.im:
             param_set["N1"] = Parameter(9000, 1000, 30000)
             param_set["N2"] = Parameter(5000, 1000, 30000)

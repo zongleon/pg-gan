@@ -245,3 +245,36 @@ def ooa3(params, sample_sizes, seed, reco):
     ts = engine.simulate(model, contig, samples, seed=seed)
 
     return ts
+
+def bottleneck(params, sample_sizes, seed, reco):
+    """Note this is a 1 population model"""
+    assert len(sample_sizes) == 1
+
+    N1 = params.N1.value # ancestral size
+    N2 = params.N2.value # final size
+    T1 = params.T1.value
+
+    # should be negative if N1 is greater than N2
+    g = -math.log(N1/N2)/T1
+    #print("N1", N1, "N2", N2, "T1", T1, "growth", g)
+    #input('enter')
+
+    population_configurations = [
+        msprime.PopulationConfiguration(sample_size=sum(sample_sizes),
+        initial_size = params.N2.value)]
+
+    demographic_events = [
+        msprime.PopulationParametersChange(time=0,  initial_size=N2, growth_rate=g),
+        msprime.PopulationParametersChange(time=T1, initial_size=N1, growth_rate=0),
+	]
+
+    ts = msprime.simulate(#sample_size = sum(sample_sizes),
+        #population_size = params.N2.value,
+        population_configurations = population_configurations,
+		demographic_events = demographic_events,
+		mutation_rate = params.mut.value,
+		length =  global_vars.L,
+		recombination_rate = reco,
+        random_seed = seed)
+
+    return ts

@@ -13,6 +13,11 @@ from numpy.random import default_rng
 import sys
 import datetime
 
+# to remove
+#import math
+#import tensorflow as tf
+#import discriminator
+
 # our imports
 import global_vars
 import util
@@ -148,6 +153,7 @@ class RealDataRandomIterator:
             self.chrom_counts = defaultdict(int)
             for x in list(self.chrom_all):
                 self.chrom_counts[int(x)] += 1
+            print(self.chrom_counts)
 
     def find_end(self, start_idx):
         """
@@ -178,6 +184,7 @@ class RealDataRandomIterator:
     def real_region(self, neg1, region_len):
         # inclusive
         start_idx = self.rng.integers(0, self.num_snps - global_vars.NUM_SNPS)
+        #print('start idx', start_idx)
 
         if region_len:
             end_idx = self.find_end(start_idx)
@@ -211,7 +218,7 @@ class RealDataRandomIterator:
 
             after = util.process_gt_dist(hap_data, dist_vec,
                 region_len=region_len, real=True, neg1=neg1)
-            return after
+            return after #, [chrom, start_base, end_base]
 
         # try again if not in accessible region
         return self.real_region(neg1, region_len)
@@ -223,16 +230,18 @@ class RealDataRandomIterator:
         if not region_len:
             regions = np.zeros((batch_size, self.num_samples,
                 global_vars.NUM_SNPS, 2), dtype=np.float32)
+            #region_info = []
 
             for i in range(batch_size):
                 regions[i] = self.real_region(neg1, region_len)
+                #region_info.append(info)
 
         else:
             regions = []
             for i in range(batch_size):
                 regions.append(self.real_region(neg1, region_len))
 
-        return regions
+        return regions #, region_info
 
     def real_chrom(self, chrom, samples):
         """Mostly used for msmc - gather all data for a given chrom int"""
@@ -253,6 +262,10 @@ class RealDataRandomIterator:
 
         return hap_data.transpose(), positions
 
+# simoid
+#def get_prob(x):
+#    return 1 / (1 + math.exp(-x))
+
 if __name__ == "__main__":
     # testing
 
@@ -260,18 +273,42 @@ if __name__ == "__main__":
     filename = sys.argv[1]
     bed_file = sys.argv[2]
     iterator = RealDataRandomIterator(filename, global_vars.DEFAULT_SEED,
-        bed_file)
+                                      bed_file, chrom_starts=True)
+    #out_file = open(sys.argv[4], 'w')
+
+    disc = tf.saved_model.load(sys.argv[3])
+    disc_recon = discriminator.OnePopModel(iterator.num_samples, global_vars.DEFAULT_SEED,
+                                           saved_model=disc)
 
     start_time = datetime.datetime.now()
-    for i in range(100):
-        region = iterator.real_region(False, False)
+    #for i in range(100):
+    #    region = iterator.real_region(True, False)
+    #    #pred = disc(region)
+    #    print("logit", pred)
+
+    for i in range(1000):
+        num_batch = 300
+        regions, region_info = iterator.real_batch(batch_size=num_batch)
+        logits = disc_recon(regions, training=False)
+        probs = [get_prob(x) for x in logits]
+        #print(probs)
+        #print('min', min(probs), 'max', max(probs))
+        for j in range(num_batch):
+            chrom = str(region_info[j][0])
+            start = str(region_info[j][1])
+            end = str(region_info[j][2])
+            #out_file.write("\t".join([chrom, start, end, str(probs[j])]) + "\n")
+            print(chrom, start, end, probs[j])
+            print(regions[j])
+            input('enter')
+    #out_file.close()
 
     end_time = datetime.datetime.now()
     elapsed = end_time - start_time
     print("time s:ms", elapsed.seconds,":",elapsed.microseconds)
 
     # test find_end
-    for i in range(10):
+    '''for i in range(10):
         start_idx = iterator.rng.integers(0, iterator.num_snps - \
             global_vars.NUM_SNPS)
-        iterator.find_end(start_idx)
+        iterator.find_end(start_idx)'''

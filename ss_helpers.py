@@ -6,7 +6,7 @@ Date: 1/27/23
 """
 
 # python imports
-import allel
+#import allel
 import libsequence
 import matplotlib.pyplot as plt
 import numpy as np
@@ -24,8 +24,13 @@ NUM_LD  = 15
 ################################################################################
 
 def parse_mini_lst(mini_lst):
-    return [float(x.replace("[",'').replace("]",'').replace(",",'')) for x in
+    return [float(remove_numpy(x.replace("[",'').replace("]",'').replace(",",''))) for x in
         mini_lst]
+
+def remove_numpy(string):
+    if "(" in string:
+        return string[string.index("(")+1:string.index(")")]
+    return string
 
 def add_to_lst(total_lst, mini_lst):
     assert len(total_lst) == len(mini_lst)

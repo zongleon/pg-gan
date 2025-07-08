@@ -30,8 +30,8 @@ NAMES = [
     "Hudson's Fst"]
 FST_COLOR = "purple"
 
-# for ooa2 (YRI/CEU) (no longer supported)
-#FSC_PARAMS = [21017, 0.0341901, 3105.5, 21954, 33077.5, 2844, 1042]
+# override for GHIST
+GHIST_PARAMS = None #[14135, 869, 700] #[15000, 5000, 2500] # N1 N2 T1
 
 def main():
     input_file = sys.argv[1]
@@ -49,6 +49,9 @@ def main():
 
     opts, param_values = util.parse_args(in_file_data = in_file_data,
         param_values=param_values)
+    if GHIST_PARAMS is not None:
+        param_values = GHIST_PARAMS
+    print("noting params", param_values, type(param_values))
 
     generator, iterator, parameters, sample_sizes = util.process_opts(opts,
         summary_stats=True)

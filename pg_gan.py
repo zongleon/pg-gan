@@ -7,6 +7,8 @@ Date 9/27/22
 # python imports
 import datetime
 import numpy as np
+import os
+import random
 import sys
 import tensorflow as tf
 import scipy.stats
@@ -32,6 +34,14 @@ print("L", global_vars.L)
 print("NUM_CLASSES", NUM_CLASSES)
 print("NUM_CHANNELS", NUM_CHANNELS)
 
+DISC_PATH = "/homes/smathieson/Documents/pg_gan_interpret/"
+
+def reset_random_seeds(seed):
+   os.environ['PYTHONHASHSEED']=str(seed)
+   tf.random.set_seed(seed)
+   np.random.seed(seed)
+   random.seed(seed)
+   
 def main():
     """Parse args and run simulated annealing"""
 
@@ -39,13 +49,11 @@ def main():
     print(opts)
 
     # set up seeds
-    if opts.seed != None:
-        np.random.seed(opts.seed)
-        tf.random.set_seed(opts.seed)
+    reset_random_seeds(opts.seed)
 
     generator, iterator, iterable_params, sample_sizes = util.process_opts(opts)
     #disc = discriminator.MultiPopModel(sample_sizes)
-    disc = get_discriminator(sample_sizes)
+    disc = get_discriminator(sample_sizes, opts.seed)
 
     # grid search
     if opts.grid:
@@ -135,7 +143,7 @@ def simulated_annealing(generator, disc, iterator, iterable_params, seed,
         if accept:
             print("ACCEPTED")
             s_current = s_best
-            generator.update_params(s_current)
+            pg_gan.generator.update_params(s_current)
             # train only if accept
             real_acc, fake_acc = pg_gan.train_sa(NUM_BATCH)
             loss_curr = loss_best
@@ -149,6 +157,8 @@ def simulated_annealing(generator, disc, iterator, iterable_params, seed,
         posterior.append(s_current.to_list())
         loss_lst.append(loss_curr)
 
+    if prefix is not None:
+        pg_gan.discriminator.save(DISC_PATH + prefix + ".keras")
     return posterior, loss_lst
 
 def temperature(i, num_iter):
@@ -297,10 +307,10 @@ class PG_GAN:
 # EXTRA UTILITIES
 ################################################################################
 
-def get_discriminator(sample_sizes):
+def get_discriminator(sample_sizes, seed):
     num_pops = len(sample_sizes)
     if num_pops == 1:
-        return discriminator.OnePopModel(sample_sizes[0])
+        return discriminator.OnePopModel()# sample_sizes[0], seed) SM: removing for now to work with saving disc
     if num_pops == 2:
         return discriminator.TwoPopModel(sample_sizes[0], sample_sizes[1])
     # else

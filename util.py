@@ -145,6 +145,8 @@ def parse_args(in_file_data = None, param_values = None):
         help='comma separated sample sizes for each population, in haps')
     parser.add_option('-v', '--param_values', type='string',
         help='comma separated values corresponding to params')
+    parser.add_option('-o', '--out_prefix', type='string',
+        help='output prefix for discriminator saved model')
 
     (opts, args) = parser.parse_args()
 
@@ -205,7 +207,7 @@ def parse_args(in_file_data = None, param_values = None):
             param_mismatch("PARAM_VALUES", param_values, arg_values)
             param_values = arg_values # override at return
 
-    mandatories = ['model','params','sample_sizes']
+    mandatories = ['model','params']
     for m in mandatories:
         if not opts.__dict__[m]:
             print('mandatory option ' + m + ' is missing\n')
@@ -280,9 +282,9 @@ def parse_sample_sizes(n_string):
     return [int(n) for n in n_string.split(",")]
 
 def process_opts(opts, summary_stats = False):
-    sample_sizes = parse_sample_sizes(opts.sample_sizes)
 
     real = False
+    ss_total = global_vars.DEFAULT_SAMPLE_SIZE
     # if real data provided
     if opts.data_h5 is not None: # h5 is None option at end of func
         real = True
@@ -297,6 +299,7 @@ def process_opts(opts, summary_stats = False):
         iterator = real_data_random.RealDataRandomIterator(filename=opts.data_h5,
                                                            seed=opts.seed,
                                                            bed_file=opts.bed)
+        ss_total = iterator.num_samples
 
     # more flexible way to get the simulator
     simulator = getattr(simulation, opts.model)
@@ -306,6 +309,12 @@ def process_opts(opts, summary_stats = False):
 
     # parameter defaults
     iterable_params = parse_params(opts.params, simulator) # DICTIONARY of params to iterator over
+
+    # sample sizes
+    if opts.sample_sizes is None: # get from VCF in case of one population
+        sample_sizes = [ss_total]
+    else:
+        sample_sizes = parse_sample_sizes(opts.sample_sizes)
 
     # generator
     gen = generator.Generator(simulator, iterable_params, sample_sizes,
