@@ -13,8 +13,8 @@ from numpy.random import default_rng
 import sys
 
 # our imports
-from . import global_vars
-from . import util
+from pg_gan import global_vars
+from pg_gan import util
 
 class Region:
 
@@ -242,6 +242,7 @@ class RealDataRandomIterator:
 
     def real_region(self, neg1, region_len, start_idx=None, mid_idx=None,
         region_L=None):
+        recursion = start_idx is None
         # use region_len = True and mid_idx/region_L together for logit_tajD!
 
         if start_idx is None and mid_idx is None:
@@ -249,13 +250,15 @@ class RealDataRandomIterator:
             start_idx = self.rng.integers(self.num_snps - global_vars.NUM_SNPS)
 
         if region_len:
-            start_idx, end_idx = self.find_endpoints(mid_idx, region_L)
-            #end_idx = self.find_end(start_idx)
+            if mid_idx is not None:
+                start_idx, end_idx = self.find_endpoints(mid_idx, region_L)
+            else:
+                end_idx = self.find_end(start_idx)
             if end_idx == -1 or start_idx == -1:
-                if start_idx is None:
+                if recursion:
                     return self.real_region(neg1, region_len) # try again
                 else:
-                    #print('start or end bad')
+                    # print('start or end bad')
                     return None # no recursion if walking through the genome
         else:
             end_idx = start_idx + global_vars.NUM_SNPS # exclusive
@@ -266,10 +269,10 @@ class RealDataRandomIterator:
 
         if start_chrom != end_chrom:
             #print("bad chrom", start_chrom, end_chrom)
-            if start_idx is None:
+            if recursion:
                 return self.real_region(neg1, region_len) # try again
             else:
-                #print('start end mismatch')
+                # print('start end mismatch')
                 return None # no recursion if walking through the genome
 
         #print("start mid end", start_idx, mid_idx, end_idx)
@@ -297,10 +300,10 @@ class RealDataRandomIterator:
             return after
 
         # try again if not in accessible region
-        if start_idx is None:
+        if recursion:
             return self.real_region(neg1, region_len) # try again
         else:
-            #print('not accessible')
+            # print('not accessible')
             return None # no recursion if walking through the genome
 
     def real_batch(self, batch_size = global_vars.BATCH_SIZE, neg1=True,

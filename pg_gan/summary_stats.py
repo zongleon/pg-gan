@@ -13,9 +13,9 @@ import seaborn as sns
 import sys
 
 # our imports
-from . import global_vars
-from . import ss_helpers
-from . import util
+from pg_gan import global_vars
+from pg_gan import ss_helpers
+from pg_gan import util
 
 # globals
 NUM_TRIAL = 5000
@@ -254,6 +254,7 @@ def plot_population(axes, i, j, real_color, real_label, real_tuple, sim_color,
     for r in range(3):
         for c in range(2):
             idx = 2*r+c
+            print(idx, len(axes), len(axes[0]), len(NAMES), len(real_tuple), len(sim_tuple))
             ss_helpers.plot_generic(axes[i+r][j+c], NAMES[idx], real_tuple[idx],
                 sim_tuple[idx], real_color, sim_color, pop=real_label,
                 sim_label=sim_label, single=single)

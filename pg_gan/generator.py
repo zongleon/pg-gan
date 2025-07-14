@@ -9,10 +9,10 @@ import numpy as np
 from numpy.random import default_rng
 
 # our imports
-from . import global_vars
-from .param_set import ParamSet
-from . import simulation
-from . import util
+from pg_gan import global_vars
+from pg_gan.param_set import ParamSet
+from pg_gan import simulation
+from pg_gan import util
 
 ################################################################################
 # GENERATOR CLASS

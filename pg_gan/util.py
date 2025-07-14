@@ -10,11 +10,11 @@ import optparse
 import sys
 
 # our imports
-from . import generator
-from . import global_vars
-from .param_set import ParamSet
-from . import real_data_random
-from . import simulation
+from pg_gan import generator
+from pg_gan import global_vars
+from pg_gan.param_set import ParamSet
+from pg_gan import real_data_random
+from pg_gan import simulation
 
 def parse_params(param_input, simulator):
     """See which params were desired for inference"""
@@ -147,6 +147,11 @@ def parse_args(in_file_data = None, param_values = None):
         help='comma separated values corresponding to params')
     parser.add_option('-o', '--out_prefix', type='string',
         help='output prefix for discriminator saved model')
+    parser.add_option('--wandb', action='store_true', help='use Weights & Biases logging')
+    parser.add_option('--disc_lr', type=float, default=1e-4, help='Discriminator learning rate')
+    parser.add_option('--proposal_width_scale', type=float, default=1.0, help='Scale for proposal width')
+    parser.add_option('--num_critic', type=int, default=1, help='Number of critic training iterations per generator update')
+    parser.add_option('--gp_weight', type=float, default=10.0, help='Gradient penalty weight')
 
     (opts, args) = parser.parse_args()
 

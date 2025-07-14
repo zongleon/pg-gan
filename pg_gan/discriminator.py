@@ -5,11 +5,12 @@ Date: 2/4/21
 """
 
 # python imports
+import numpy as np
 import tensorflow as tf
 
-from tensorflow.keras.layers import Dense, Flatten, Conv1D, Conv2D, \
+from keras.layers import Dense, Flatten, Conv1D, Conv2D, \
     MaxPooling2D, AveragePooling1D, Dropout, Concatenate
-from tensorflow.keras import Model
+from keras import Model
 
 class OnePopModel(Model):
     """Single population model - based on defiNETti software."""
@@ -28,6 +29,8 @@ class OnePopModel(Model):
 
         # change from 128,128 to 32,32,16 (same # params)
         self.fc_size = kwargs["fc_size"]
+        self.pop = kwargs["pop"]
+
         self.fc1 = Dense(self.fc_size, activation='relu', name="fc1")
         self.fc2 = Dense(self.fc_size, activation='relu', name="fc2")
         self.dense3 = Dense(1)#2, activation='softmax') # two classes
@@ -100,25 +103,22 @@ class OnePopModel(Model):
 
     def build_graph(self, gt_shape):
         """This is for testing, based on TF tutorials"""
-        gt_shape_nobatch = gt_shape[1:]
-        self.build(gt_shape) # make sure to call on shape with batch
-        gt_inputs = tf.keras.Input(shape=gt_shape_nobatch)
+        corrected = np.ones(gt_shape, dtype=np.float32)
+        _ = self.call(corrected, training=False)
 
-        if not hasattr(self, 'call'):
-            raise AttributeError("User should define 'call' method!")
-
-        _ = self.call(gt_inputs)
-
-    '''def get_config(self):
-        base_config = super().get_config()
-        config = {"pop": self.pop}
-        return {**base_config, **config}
+    def get_config(self):
+        config = super(OnePopModel, self).get_config()
+        config.update({
+            "fc_size": self.fc_size,
+            "pop": self.pop
+        })
+        return config
 
     @classmethod
     def from_config(cls, config):
-        pop = 40 # config.pop("pop")
-        return cls(pop, **config)'''
+        return cls(**config)
 
+    
 class TwoPopModel(Model):
     """Two population model"""
 

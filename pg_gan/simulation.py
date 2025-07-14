@@ -9,10 +9,10 @@ import math
 import msprime
 
 # from stdpopsim
-from . import sps
+from pg_gan.sps import species, HomSap, engines
 
 # our imports
-from . import global_vars
+from pg_gan import global_vars
 
 ################################################################################
 # SIMULATION
@@ -214,7 +214,7 @@ def ooa3(params, sample_sizes, seed, reco):
     """From OOA3 as implemented in stdpopsim"""
     assert len(sample_sizes) == 3
 
-    sp = sps.species.get_species("HomSap")
+    sp = species.get_species("HomSap")
 
     mult = global_vars.L/141213431 # chr9
     contig = sp.get_contig("chr9",length_multiplier=mult) # TODO vary the chrom
@@ -235,11 +235,11 @@ def ooa3(params, sample_sizes, seed, reco):
     m_AF_AS = params.get("m_AF_AS")
     m_EU_AS = params.get("m_EU_AS")
 
-    model = sps.HomSap.ooa_3(N_A, N_B, N_AF, N_EU0, N_AS0, r_EU, r_AS, T_AF,
+    model = HomSap.ooa_3(N_A, N_B, N_AF, N_EU0, N_AS0, r_EU, r_AS, T_AF,
         T_B, T_EU_AS, m_AF_B, m_AF_EU, m_AF_AS, m_EU_AS)
     samples = model.get_samples(sample_sizes[0], sample_sizes[1],
         sample_sizes[2]) #['YRI', 'CEU', 'CHB']
-    engine = sps.engines.get_engine('msprime')
+    engine = engines.get_engine('msprime')
     ts = engine.simulate(model, contig, samples, seed=seed)
 
     return ts

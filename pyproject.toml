@@ -12,10 +12,6 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.7"
 dependencies = [
-    tensorflow==2.12
-    msprime
-    h5py
-    allel
 ]
 
 [tool.setuptools]

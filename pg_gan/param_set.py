@@ -10,7 +10,7 @@ from scipy.stats import norm
 import sys
 
 # our imports
-from . import simulation
+from pg_gan import simulation
 
 class Parameter:
     """
@@ -19,11 +19,11 @@ class Parameter:
     that parameter is not inferred, or the truth when training data is simulated
     """
 
-    def __init__(self, value, min, max):
+    def __init__(self, value, min, max, scale=1.0):
         self.value = value
         self.min = min
         self.max = max
-        self.proposal_width = (self.max - self.min)/15 # heuristic
+        self.proposal_width = scale * (self.max - self.min)/15 # heuristic
 
     def start(self):
         # random initialization
@@ -65,24 +65,24 @@ class Parameter:
 
 class ParamSet:
 
-    def __init__(self, simulator, iterable_params=[]):
+    def __init__(self, simulator, iterable_params=[], scale=1.0):
         """Takes in a simulator to determine which params are needed"""
 
         param_set = {}
-        param_set["reco"] = Parameter(1.25e-8, 1e-9, 1e-7)
-        param_set["mut"] = Parameter(1.25e-8, 1e-9, 1e-7)
+        param_set["reco"] = Parameter(1.25e-8, 1e-9, 1e-7, scale=scale)
+        param_set["mut"] = Parameter(1.25e-8, 1e-9, 1e-7, scale=scale)
 
         # constant population size
         if simulator == simulation.const:
-            param_set["Ne"] = Parameter(10000, 1000, 30000)
+            param_set["Ne"] = Parameter(10000, 1000, 30000, scale=scale)
 
         # bottleneck model from GHIST
         elif simulator == simulation.bottleneck:
-            self.N1 = Parameter(10000, 1000, 30000, "N1")
-            self.N2 = Parameter(5000, 500, 15000, "N2")
-            self.T1 = Parameter(1000, 500, 2000, "T1")
-            self.reco = Parameter(1.007e-8, 1e-9, 1e-7, "reco")
-            self.mut = Parameter(1.26e-8, 1e-9, 1e-7, "mut")
+            self.N1 = Parameter(10000, 1000, 30000, "N1", scale=scale)
+            self.N2 = Parameter(5000, 500, 15000, "N2", scale=scale)
+            self.T1 = Parameter(1000, 500, 2000, "T1", scale=scale)
+            self.reco = Parameter(1.007e-8, 1e-9, 1e-7, "reco", scale=scale)
+            self.mut = Parameter(1.26e-8, 1e-9, 1e-7, "mut", scale=scale)
 
         # exponential growth model
         elif simulator == simulation.exp:
@@ -199,7 +199,7 @@ class ParamSet:
             value_dict = self.param_set
 
         for key in self.param_set:
-            self.propose_param(key, value_dict.get(key), multiplier)
+            self.propose_param(key, value_dict.get(key).value, multiplier)
 
     def update(self, iterable_params):
         new_params = iterable_params.param_set

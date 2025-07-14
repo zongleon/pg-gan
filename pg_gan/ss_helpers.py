@@ -2,112 +2,25 @@
 Summary stat helpers for computing and plotting summary statistics.
 Note: "real" should alwasy be first, followed by simulated.
 Author: Sara Mathieson, Rebecca Riley
-Date: 1/27/23
+Date: 9/27/22
 """
 
+# TODO some of these could be replaced with tskit
+# https://tskit.readthedocs.io/en/stable/python-api.html#tskit.TreeSequence
+
 # python imports
-#import allel
-import libsequence
+import allel
+import pylibseq as libsequence
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
 # our imports
-from . import global_vars
+import global_vars
 
 # GLOBALS
 NUM_SFS = 10
 NUM_LD  = 15
-
-################################################################################
-# PARSE PG-GAN OUTPUT
-################################################################################
-
-def parse_mini_lst(mini_lst):
-    return [float(remove_numpy(x.replace("[",'').replace("]",'').replace(",",''))) for x in
-        mini_lst]
-
-def remove_numpy(string):
-    if "(" in string:
-        return string[string.index("(")+1:string.index(")")]
-    return string
-
-def add_to_lst(total_lst, mini_lst):
-    assert len(total_lst) == len(mini_lst)
-    for i in range(len(total_lst)):
-        total_lst[i].append(mini_lst[i])
-
-def parse_output(filename, return_acc=False):
-    """Parse pg-gan output to find the inferred parameters"""
-
-    def clean_param_tkn(s):
-        if s == 'None,':
-            return None # this is a common result (not an edge case)
-
-        if s[:-1].isnumeric(): # probably the seed
-            # no need to remove quotation marks, just comma
-            return int(s[:-1]) # only used as a label, so ok to leave as str
-
-        return s[1:-2]
-
-    f = open(filename,'r')
-
-    # list of lists, one for each param
-    param_lst_all = []
-
-    # evaluation metrics
-    disc_loss_lst = []
-    real_acc_lst = []
-    fake_acc_lst = []
-
-    num_param = None
-
-    trial_data = {}
-
-    for line in f:
-
-        if line.startswith("{"):
-            tokens = line.split()
-            print(tokens)
-            param_str = tokens[3][1:-2]
-            print("PARAMS", param_str)
-            param_names = param_str.split(",")
-            num_param = len(param_names)
-            for i in range(num_param):
-                param_lst_all.append([])
-
-            trial_data['model'] = clean_param_tkn(tokens[1])
-            trial_data['params'] = param_str
-            trial_data['data_h5'] = clean_param_tkn(tokens[5])
-            trial_data['bed_file'] = clean_param_tkn(tokens[7])
-            trial_data['reco_folder'] = clean_param_tkn(tokens[9])
-            trial_data['seed'] = clean_param_tkn(tokens[15])
-            trial_data['sample_sizes'] = clean_param_tkn(tokens[17])
-            
-        elif "Epoch 100" in line:
-            tokens = line.split()
-            disc_loss = float(tokens[3][:-1])
-            real_acc = float(tokens[6][:-1])/100
-            fake_acc = float(tokens[9])/100
-            disc_loss_lst.append(disc_loss)
-            real_acc_lst.append(real_acc)
-            fake_acc_lst.append(fake_acc)
-
-        if "T, p_accept" in line:
-            tokens = line.split()
-            # parse current params and add to each list
-            mini_lst = parse_mini_lst(tokens[-1-num_param:-1])
-            add_to_lst(param_lst_all, mini_lst)
-
-    f.close()
-
-    # Use -1 instead of iter for the last iteration
-    final_params = [param_lst_all[i][-1] for i in range(num_param)]
-    if return_acc:
-        return final_params, disc_loss_lst, real_acc_lst, fake_acc_lst, \
-            trial_data
-    else:
-        return final_params, trial_data
 
 ################################################################################
 # COMPUTE STATS
@@ -169,15 +82,17 @@ def compute_ld(vm, L):
             rsquared[i] = rsquared[i]/counts[i]
     return rsquared
 
-def compute_stats(vm, vm_region):
+def compute_stats(vm, vm_region=None):
     """Generic stats for vm (fixed num SNPs) and vm_region (fixed region len)"""
 
     stats = []
     ac = vm.count_alleles()
-    ac_region = vm_region.count_alleles()
 
-    # Tajima's D (use region here - not fixed num SNPs)
-    stats.append(libsequence.tajd(ac_region))
+    if vm_region is not None:
+        ac_region = vm_region.count_alleles()
+
+        # Tajima's D (use region here - not fixed num SNPs)
+        stats.append(libsequence.tajd(ac_region))
 
     # pi
     stats.append(libsequence.thetapi(ac))
@@ -232,6 +147,7 @@ def plot_generic(ax, name, real, sim, real_color, sim_color, pop="",
             color=real_color)
         ax.bar(range(num_sfs), sim_sfs, label=sim_label, width=0.4,
             color=sim_color)
+        # SFS x-axis label starts from 0 (monomorphic)
         ax.set_xlim(-1,len(real_sfs))
         ax.set_ylabel("frequency per region")
 
@@ -280,7 +196,7 @@ def plot_generic(ax, name, real, sim, real_color, sim_color, pop="",
 # COLLECT STATISTICS
 ################################################################################
 
-def stats_all(matrices, matrices_region):
+def stats_all(matrices, matrices_region=None):
     """Set up and compute stats"""
 
     # sfs
