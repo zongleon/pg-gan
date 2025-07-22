@@ -69,6 +69,8 @@ def main():
     print("VALUES", param_values)
     print("made it through params")
 
+    sys.exit(0)
+
     # use the parameters we inferred!
     fsc=False
     if opts.model == 'fsc':

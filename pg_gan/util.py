@@ -76,13 +76,17 @@ def process_gt_dist(gt_matrix, dist_vec, region_len=False, real=False,
     else:
         other_half_S = half_S
 
-    # enough SNPs, take middle portion
+     # enough SNPs, take middle portion
     if mid >= half_S:
-        minor = major_minor(gt_matrix[mid-half_S:mid+
-            other_half_S,:].transpose(), neg1)
+        minor = major_minor(gt_matrix[mid-half_S:mid+other_half_S,:].transpose(), neg1)
         region[:,:,0] = minor
         distances = np.vstack([np.copy(dist_vec[mid-half_S:mid+other_half_S])
             for k in range(n)])
+
+        # FIX: the first interSNP distance should not be a measure from
+        # the previous SNP, but rather 0
+        distances[:, 0] = 0.0
+
         region[:,:,1] = distances
 
     # not enough SNPs, need to center-pad

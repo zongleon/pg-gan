@@ -14,7 +14,7 @@ FRAC_TEST = 0.1 # depricated
 # to use custom trial data, switch OVERWRITE_TRIAL_DATA to True and
 # change the TRIAL_DATA dictionary to have the values desired.
 # Model, params, and param_values must be defined
-OVERWRITE_TRIAL_DATA = True
+OVERWRITE_TRIAL_DATA = False
 TRIAL_DATA = { 'model': 'exp', 'params': 'N1,N2,growth,T1,T2', 'data_h5': 'data/genomes/CEU.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.h5',
                'bed_file': 'data/genomes/20120824_strict_mask.bed', 'reco_folder': None, 'param_values': '21558.869742709805, 5896.142076568601, 0.0010594146557898422, 3650.272293584133, 1014.233835438603',
                'seed': None, 'sample_sizes': '198'}

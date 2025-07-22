@@ -60,9 +60,17 @@ class Generator:
         for i in range(batch_size):
             seed = self.rng.integers(1,high=2**32) # like GAN "noise"
 
-            ts = self.simulator(sim_params, self.sample_sizes, seed,
-                self.get_reco(sim_params.get("reco")))
-            region = prep_region(ts, neg1, region_len=region_len)
+            old_L = global_vars.L
+            region = None
+            while region is None:
+                ts = self.simulator(sim_params, self.sample_sizes, seed,
+                    self.get_reco(sim_params.get("reco")))
+                region = prep_region(ts, neg1, region_len=region_len)
+                global_vars.L *= 2
+                # error after 5 iterations
+                if global_vars.L > old_L * 32:
+                    raise Exception("Max doublings reached: cannot find enough SNPs given current generator params")
+            global_vars.L = old_L
 
             if region_len:
                 regions.append(region)
@@ -94,7 +102,7 @@ class Generator:
                     = param_values[i]
 
     def get_reco(self, reco):
-        if self.prior == []:
+        if len(self.prior) == 0:
             return reco
 
         return draw_background_rate_from_prior(self.prior, self.weights,
@@ -107,6 +115,10 @@ def prep_region(ts, neg1, region_len):
     """Gets simulated data ready"""
     gt_matrix = ts.genotype_matrix().astype(float)
     snps_total = gt_matrix.shape[0]
+
+    if snps_total < global_vars.NUM_SNPS:
+        print(f"NOT ENOUGH SNPS at length {global_vars.L}: {snps_total}/{global_vars.NUM_SNPS}")
+        return None
 
     positions = [round(variant.site.position) for variant in ts.variants()]
     assert len(positions) == snps_total
