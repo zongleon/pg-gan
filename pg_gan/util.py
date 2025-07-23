@@ -19,15 +19,16 @@ from pg_gan import simulation
 def parse_params(param_input, simulator):
     """See which params were desired for inference"""
     param_strs = param_input.split(',')
+    parameters = []
+    for _, p in vars(ParamSet(simulator)).items():
+        if p.name in param_strs:
+            parameters.append(p)
 
-    # removes non-iterable params, adds back in for sim
-    iterable_params = ParamSet(simulator, iterable_params=param_strs)
+    assert len(parameters) == len(param_strs)
+    for p in parameters:
+        print(p)
 
-    params = iterable_params.param_set.values()
-    assert len(params) == len(param_strs)
-    print(iterable_params)
-
-    return iterable_params
+    return parameters
 
 def filter_func(x, rate): # currently not used
     """Keep non-singletons. If singleton, filter at given rate"""
@@ -151,23 +152,17 @@ def parse_args(in_file_data = None, param_values = None):
         help='comma separated values corresponding to params')
     parser.add_option('-o', '--out_prefix', type='string',
         help='output prefix for discriminator saved model')
-    parser.add_option('--wandb', action='store_true', help='use Weights & Biases logging')
-    parser.add_option('--disc_lr', type=float, default=1e-4, help='Discriminator learning rate')
-    parser.add_option('--proposal_width_scale', type=float, default=1.0, help='Scale for proposal width')
-    parser.add_option('--num_critic', type=int, default=1, help='Number of critic training iterations per generator update')
-    parser.add_option('--gp_weight', type=float, default=10.0, help='Gradient penalty weight')
 
     (opts, args) = parser.parse_args()
 
     '''
     The following section overrides params from the input file with the provided
     args.
-
-    note: this series of checks looks like it could be simplified with list
-          iteration:
-    it can't be, bc the opts object can't be indexed--eg opts['model'] fails
     '''
 
+    # note: this series of checks looks like it could be simplified with list
+    #       iteration:
+    # it can't be, bc the opts object can't be indexed--eg opts['model'] fails
     def param_mismatch(param, og, replacement):
         print("***** WARNING: MISMATCH BETWEEN IN FILE AND CMD ARGS: " + param +
               ", using ARGS (" + str(og) + " -> " + str(replacement) + ")")
@@ -208,7 +203,7 @@ def parse_args(in_file_data = None, param_values = None):
         # because we care about the seed from the trial, here in_file_data takes over opts
         if in_file_data['seed'] is not None:
             opts.seed = in_file_data['seed']
-
+            
     if opts.param_values is not None:
         arg_values = [float(val_str) for val_str in
             opts.param_values.split(',')]
@@ -317,7 +312,8 @@ def process_opts(opts, summary_stats = False):
         print("FILTERING SINGLETONS")
 
     # parameter defaults
-    iterable_params = parse_params(opts.params, simulator) # DICTIONARY of params to iterator over
+    parameters = parse_params(opts.params, simulator) # desired params
+    param_names = [p.name for p in parameters]
 
     # sample sizes
     if opts.sample_sizes is None: # get from VCF in case of one population
@@ -326,16 +322,16 @@ def process_opts(opts, summary_stats = False):
         sample_sizes = parse_sample_sizes(opts.sample_sizes)
 
     # generator
-    gen = generator.Generator(simulator, iterable_params, sample_sizes,
+    gen = generator.Generator(simulator, param_names, sample_sizes,
         opts.seed, mirror_real=real, reco_folder=opts.reco_folder)
 
     if opts.data_h5 is None:
         params = ParamSet(simulator, iterable_params=[]) # keep all params
         # "real data" is simulated with fixed params
-        iterator = generator.Generator(simulator, params, sample_sizes,
+        iterator = generator.Generator(simulator, param_names, sample_sizes,
             opts.seed) # don't need reco_folder
 
-    return gen, iterator, iterable_params, sample_sizes # last used for disc.
+    return gen, iterator, parameters, sample_sizes # last used for disc.
 
 if __name__ == "__main__":
     # test major/minor and post-processing

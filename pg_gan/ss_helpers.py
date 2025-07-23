@@ -360,7 +360,7 @@ def stats_all(matrices, matrices_region=None):
         to_np = np.array(all_per_region)
         return to_np
 
-    return pop_sfs, pop_dist, pop_ld, pop_stats
+    return [pop_sfs, pop_dist, pop_ld] + pop_stats
 
 def fst_all(matrices):
     """Fst for all regions"""

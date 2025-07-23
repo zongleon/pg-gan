@@ -20,13 +20,14 @@ from pg_gan import util
 
 class Generator:
 
-    def __init__(self, simulator, iterable_params, sample_sizes, seed,
+    def __init__(self, simulator, param_names, sample_sizes, seed,
         mirror_real=False, reco_folder=""):
         self.simulator = simulator
-        self.iterable_params = iterable_params
+        self.param_names = param_names
         self.sample_sizes = sample_sizes
         self.num_samples = sum(sample_sizes)
         self.rng = default_rng(seed)
+        self.curr_params = None
 
         # for real data, use HapMap
         if mirror_real and reco_folder != None:
@@ -37,7 +38,7 @@ class Generator:
         else:
             self.prior, self.weights = [], []
 
-    def simulate_batch(self, batch_size=global_vars.BATCH_SIZE, params=[], 
+    def simulate_batch(self, batch_size=global_vars.BATCH_SIZE, params=[],
         region_len=False, real=False, neg1=True):
 
         # initialize 4D matrix (two channels for distances)
@@ -52,9 +53,9 @@ class Generator:
         if real:
             pass # keep orig for "fake" real
         elif params == []:
-            sim_params.update(self.iterable_params)
+            sim_params.update(self.param_names, self.curr_params)
         else:
-            sim_params.update(params)
+            sim_params.update(self.param_names, params)
 
         # simulate each region
         for i in range(batch_size):
@@ -64,7 +65,7 @@ class Generator:
             region = None
             while region is None:
                 ts = self.simulator(sim_params, self.sample_sizes, seed,
-                    self.get_reco(sim_params.get("reco")))
+                    self.get_reco(sim_params))
                 region = prep_region(ts, neg1, region_len=region_len)
                 global_vars.L *= 2
                 # error after 5 iterations
@@ -85,25 +86,11 @@ class Generator:
             region_len=region_len)
 
     def update_params(self, new_params):
-        self.iterable_params = new_params
-
-    def update_param_values(self, param_names, param_values):
-        if not self.iterable_params:
-            self.iterable_params = ParamSet(self.simulation)
-
-        num_params = len(param_names)
-        assert num_params == len(param_values)
-
-        for i in range(num_params):
-            param_name = param_names[i]
-
-            if param_name in self.iterable_params.param_set:
-                self.iterable_params.param_set[param_name].value\
-                    = param_values[i]
+        self.curr_params = new_params
 
     def get_reco(self, reco):
         if len(self.prior) == 0:
-            return reco
+            return params.reco.value
 
         return draw_background_rate_from_prior(self.prior, self.weights,
             self.rng)
