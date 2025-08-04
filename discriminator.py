@@ -7,9 +7,9 @@ Date: 2/4/21
 # python imports
 import tensorflow as tf
 
-from tensorflow.keras.layers import Dense, Flatten, Conv1D, Conv2D, \
+from keras.layers import Dense, Flatten, Conv1D, Conv2D, \
     MaxPooling2D, AveragePooling1D, Dropout, Concatenate, Layer
-from tensorflow.keras import Model
+from keras import Model
 
 class ReduceSum(Layer):
     # SM: I think I do not need build since there are no weights
@@ -20,12 +20,9 @@ class ReduceSum(Layer):
 class OnePopModel(Model):
     """Single population model - based on defiNETti software."""
 
-    def __init__(self, **kwargs):#, pop, seed, saved_model=None):
-        #tf.random.set_seed(seed)
-        
-        super(OnePopModel, self).__init__(**kwargs)
+    def __init__(self, **kwargs):#, pop, seed, saved_model=None):        
+        super(OnePopModel, self).__init__()
 
-        #if saved_model is None:
         # it is (1,5) for permutation invariance (shape is n X SNPs)
         self.conv1 = Conv2D(32, (1, 5), activation='relu')
         self.conv2 = Conv2D(64, (1, 5), activation='relu')
@@ -34,23 +31,9 @@ class OnePopModel(Model):
         self.flatten = Flatten()
         self.dropout = Dropout(rate=0.0) # changed from 0.5 for experiment
 
-        self.fc1 = Dense(64, activation='relu') # changed from 128
-        self.fc2 = Dense(64, activation='relu') # changed from 128
+        self.fc1 = Dense(kwargs["fc_size"], name="fc1", activation='relu') # changed from 128
+        self.fc2 = Dense(kwargs["fc_size"], name="fc2", activation='relu') # changed from 128
         self.dense3 = Dense(1)#2, activation='softmax') # two classes
-
-        '''else:
-            self.conv1 = saved_model.conv1
-            self.conv2 = saved_model.conv2
-            self.pool = saved_model.pool
-
-            self.flatten = saved_model.flatten
-            self.dropout = saved_model.dropout
-
-            self.fc1 = saved_model.fc1
-            self.fc2 = saved_model.fc2
-            self.dense3 = saved_model.dense3
-                
-        self.pop = pop'''
 
     def call(self, x, training=None):
         """x is the genotype matrix, dist is the SNP distances"""
@@ -72,6 +55,18 @@ class OnePopModel(Model):
         x = self.fc2(x)
         x = self.dropout(x, training=training)
         return self.dense3(x)
+    
+    def last_hidden_layer(self, x):
+        """Get output of last hidden layer (before final dense layer)"""
+        x = self.conv1(x)
+        x = self.pool(x)
+        x = self.conv2(x)
+        x = self.pool(x)
+        x = ReduceSum()(x)
+        x = self.flatten(x)
+        x = self.fc1(x)
+        x = self.fc2(x)
+        return x 
 
     def build_graph(self, gt_shape):
         """This is for testing, based on TF tutorials"""

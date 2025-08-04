@@ -7,10 +7,10 @@ import logging
 
 import msprime
 
-import sps.genomes as genomes
-import sps.species as species
-import sps.genetic_maps as genetic_maps
-import sps.models as models
+from . import genomes
+from . import species
+from . import genetic_maps
+from . import models
 
 logger = logging.getLogger(__name__)
 

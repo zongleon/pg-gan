@@ -6,14 +6,15 @@ Date: 1/27/23
 """
 
 # python imports
-#import allel
-import libsequence
+import allel
+import pylibseq as libsequence
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+import time
 
 # our imports
-import global_vars
+from . import global_vars
 
 # GLOBALS
 NUM_SFS = 10
@@ -113,10 +114,18 @@ def parse_output(filename, return_acc=False):
 # COMPUTE STATS
 ################################################################################
 
-def compute_sfs(vm):
+def compute_sfs(vm, benchmark=False):
     """Show the beginning of the SFS"""
+    if benchmark:
+        start_time = time.time()
+    
     ac = vm.count_alleles()
-    return [variant_counts(ac,i) for i in range(0,NUM_SFS)]
+    result = [variant_counts(ac,i) for i in range(0,NUM_SFS)]
+    
+    if benchmark:
+        end_time = time.time()
+        return result, end_time - start_time
+    return result
 
 def variant_counts(ac,c):
     """Helper for SFS"""
@@ -137,8 +146,10 @@ def variant_counts(ac,c):
 
     return count
 
-def compute_ld(vm, L):
+def compute_ld(vm, L, benchmark=False):
     """Compute LD as a function of inter-SNP distance"""
+    if benchmark:
+        start_time = time.time()
 
     stringy_data = [''.join(map(str, row)) for row in vm.data.transpose()]
     sd = libsequence.SimData(vm.positions, stringy_data)
@@ -167,34 +178,62 @@ def compute_ld(vm, L):
     for i in range(nbin):
         if counts[i] > 0:
             rsquared[i] = rsquared[i]/counts[i]
+    
+    if benchmark:
+        end_time = time.time()
+        return rsquared, end_time - start_time
     return rsquared
 
-def compute_stats(vm, vm_region):
+def compute_stats(vm, vm_region, benchmark=False):
     """Generic stats for vm (fixed num SNPs) and vm_region (fixed region len)"""
+    if benchmark:
+        timings = {}
 
     stats = []
     ac = vm.count_alleles()
-    ac_region = vm_region.count_alleles()
 
     # Tajima's D (use region here - not fixed num SNPs)
-    stats.append(libsequence.tajd(ac_region))
+    if vm_region is not None:
+        if benchmark:
+            tajd_start = time.time()
+        ac_region = vm_region.count_alleles()
+        tajd_result = libsequence.tajd(ac_region)
+        stats.append(tajd_result)
+        if benchmark:
+            timings['tajimas_d'] = time.time() - tajd_start
+        
 
     # pi
-    stats.append(libsequence.thetapi(ac))
+    if benchmark:
+        pi_start = time.time()
+    pi_result = libsequence.thetapi(ac)
+    stats.append(pi_result)
+    if benchmark:
+        timings['pi'] = time.time() - pi_start
 
     # wattersons
     #stats.append(libsequence.thetaw(ac))
 
     # num haps
-    stats.append(libsequence.number_of_haplotypes(vm))
+    if benchmark:
+        haps_start = time.time()
+    haps_result = libsequence.number_of_haplotypes(vm)
+    stats.append(haps_result)
+    if benchmark:
+        timings['num_haps'] = time.time() - haps_start
 
+    if benchmark:
+        return stats, timings
     return stats
 
-def compute_fst(raw):
+def compute_fst(raw, benchmark=False):
     """
     FST (for two populations)
     https://scikit-allel.readthedocs.io/en/stable/stats/fst.html
     """
+    if benchmark:
+        start_time = time.time()
+    
     # raw has been transposed
     nvar = raw.shape[0]
     nsam = raw.shape[1]
@@ -210,6 +249,10 @@ def compute_fst(raw):
     # compute average fst
     num, den = allel.hudson_fst(ac1, ac2)
     fst = np.sum(num) / np.sum(den)
+    
+    if benchmark:
+        end_time = time.time()
+        return fst, end_time - start_time
     return fst
 
 ################################################################################
@@ -280,8 +323,18 @@ def plot_generic(ax, name, real, sim, real_color, sim_color, pop="",
 # COLLECT STATISTICS
 ################################################################################
 
-def stats_all(matrices, matrices_region):
+def stats_all(matrices, matrices_region=None, benchmark=False):
     """Set up and compute stats"""
+    if benchmark:
+        stat_timings = {
+            'sfs': [],
+            'inter_snp': [],
+            'ld': [],
+            'pi': [],
+            'num_haps': []
+        }
+        if matrices_region is not None:
+            stat_timings['tajimas_d'] = []
 
     # sfs
     pop_sfs = []
@@ -310,36 +363,67 @@ def stats_all(matrices, matrices_region):
         vm = libsequence.VariantMatrix(raw, pos)
 
         # fixed region
-        matrix_region = matrices_region[i]
-        raw_region = matrix_region[:,:,0].transpose()
-        intersnp_region = matrix_region[:,:,1][0] # all the same
-        pos_region = [sum(intersnp_region[:i]) for i in
-            range(len(intersnp_region))]
-        assert len(pos_region) == len(intersnp_region)
-        vm_region = libsequence.VariantMatrix(raw_region, pos_region)
+        if matrices_region is None:
+            vm_region = None
+        else:
+            matrix_region = matrices_region[i]
+            raw_region = matrix_region[:,:,0].transpose()
+            intersnp_region = matrix_region[:,:,1][0] # all the same
+            pos_region = [sum(intersnp_region[:i]) for i in
+                range(len(intersnp_region))]
+            assert len(pos_region) == len(intersnp_region)
+            vm_region = libsequence.VariantMatrix(raw_region, pos_region)
 
         # sfs
-        sfs = compute_sfs(vm)
+        if benchmark:
+            sfs, sfs_time = compute_sfs(vm, benchmark=True)
+            stat_timings['sfs'].append(sfs_time)
+        else:
+            sfs = compute_sfs(vm)
         for s in range(len(sfs)):
             pop_sfs[s].append(sfs[s])
 
         # inter-snp
+        if benchmark:
+            intersnp_start = time.time()
         pop_dist.extend([x*global_vars.L for x in intersnp])
+        if benchmark:
+            stat_timings['inter_snp'].append(time.time() - intersnp_start)
 
         # LD
-        ld = compute_ld(vm, global_vars.L)
+        if benchmark:
+            ld, ld_time = compute_ld(vm, global_vars.L, benchmark=True)
+            stat_timings['ld'].append(ld_time)
+        else:
+            ld = compute_ld(vm, global_vars.L)
         for l in range(len(ld)):
             pop_ld[l].append(ld[l])
 
         # rest of stats
-        stats = compute_stats(vm, vm_region)
+        if benchmark:
+            stats, individual_timings = compute_stats(vm, vm_region, benchmark=True)
+            if matrices_region is not None:
+                stat_timings['tajimas_d'].append(individual_timings['tajimas_d'])
+            stat_timings['pi'].append(individual_timings['pi'])
+            stat_timings['num_haps'].append(individual_timings['num_haps'])
+        else:
+            stats = compute_stats(vm, vm_region)
         for s in range(len(stats)):
             pop_stats[s].append(stats[s])
 
-    return [pop_sfs, pop_dist, pop_ld] + pop_stats
+    result = [pop_sfs, pop_dist, pop_ld] + pop_stats
+    
+    if benchmark:
+        return result, stat_timings
+    
+    return result
 
-def fst_all(matrices):
+def fst_all(matrices, benchmark=False):
     """Fst for all regions"""
+    if benchmark:
+        start_time = time.time()
+        fst_times = []
+    
     real_fst = []
     for i in range(len(matrices)):
         matrix = matrices[i]
@@ -347,7 +431,31 @@ def fst_all(matrices):
         raw = matrix[:,:,0].transpose()
         intersnp = matrix[:,:,1][0] # all the same
 
-        fst = compute_fst(raw)
+        if benchmark:
+            fst, fst_time = compute_fst(raw, benchmark=True)
+            fst_times.append(fst_time)
+        else:
+            fst = compute_fst(raw)
         real_fst.append(fst)
 
+    if benchmark:
+        total_time = time.time() - start_time
+        timing_summary = {
+            'mean': np.mean(fst_times),
+            'std': np.std(fst_times),
+            'min': np.min(fst_times),
+            'max': np.max(fst_times),
+            'total': np.sum(fst_times),
+            'total_time': total_time
+        }
+        return real_fst, timing_summary
+    
     return real_fst
+
+STATS = [f'SFS_{i}' for i in range(0, 10)] + \
+             [f'inter-SNP_{i}' for i in range(1, 37)] + \
+             [f'LD_{i}' for i in range(1, 16)] + ['$\pi$', '#haps']
+
+EXTRA_STATS = ['ihs_maxabs', "tajimas_d", 'garud_h1', 'garud_h12', 'garud_h123', 'garud_h2_h1']
+
+ALL_STATS = STATS + EXTRA_STATS

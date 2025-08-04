@@ -8,7 +8,7 @@ import warnings
 
 import attr
 import msprime
-import sps.genomes as genomes
+from . import genomes
 
 #import stdpopsim
 

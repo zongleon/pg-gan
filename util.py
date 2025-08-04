@@ -10,24 +10,25 @@ import optparse
 import sys
 
 # our imports
-import generator
-import global_vars
-from param_set import ParamSet
-import real_data_random
-import simulation
+from . import generator
+from . import global_vars
+from . import param_set
+from . import real_data_random
+from . import simulation
 
 def parse_params(param_input, simulator):
     """See which params were desired for inference"""
     param_strs = param_input.split(',')
+    parameters = []
+    for _, p in vars(param_set.ParamSet(simulator)).items():
+        if p.name in param_strs:
+            parameters.append(p)
 
-    # removes non-iterable params, adds back in for sim
-    iterable_params = ParamSet(simulator, iterable_params=param_strs)
+    assert len(parameters) == len(param_strs)
+    for p in parameters:
+        print(p)
 
-    params = iterable_params.param_set.values()
-    assert len(params) == len(param_strs)
-    print(iterable_params)
-
-    return iterable_params
+    return parameters
 
 def filter_func(x, rate): # currently not used
     """Keep non-singletons. If singleton, filter at given rate"""
@@ -83,6 +84,11 @@ def process_gt_dist(gt_matrix, dist_vec, region_len=False, real=False,
         region[:,:,0] = minor
         distances = np.vstack([np.copy(dist_vec[mid-half_S:mid+other_half_S])
             for k in range(n)])
+        
+        # FIX: the first interSNP distance should not be a measure from
+        # the previous SNP, but rather 0
+        distances[:, 0] = 0.0
+
         region[:,:,1] = distances
 
     # not enough SNPs, need to center-pad
@@ -93,6 +99,7 @@ def process_gt_dist(gt_matrix, dist_vec, region_len=False, real=False,
         region[:,half_S-mid:half_S-mid+num_SNPs,0] = minor
         distances = np.vstack([np.copy(dist_vec) for k in range(n)])
         region[:,half_S-mid:half_S-mid+num_SNPs,1] = distances
+
 
     return region # n X SNPs X 2
 
@@ -153,12 +160,11 @@ def parse_args(in_file_data = None, param_values = None):
     '''
     The following section overrides params from the input file with the provided
     args.
-
-    note: this series of checks looks like it could be simplified with list
-          iteration:
-    it can't be, bc the opts object can't be indexed--eg opts['model'] fails
     '''
 
+    # note: this series of checks looks like it could be simplified with list
+    #       iteration:
+    # it can't be, bc the opts object can't be indexed--eg opts['model'] fails
     def param_mismatch(param, og, replacement):
         print("***** WARNING: MISMATCH BETWEEN IN FILE AND CMD ARGS: " + param +
               ", using ARGS (" + str(og) + " -> " + str(replacement) + ")")
@@ -199,7 +205,7 @@ def parse_args(in_file_data = None, param_values = None):
         # because we care about the seed from the trial, here in_file_data takes over opts
         if in_file_data['seed'] is not None:
             opts.seed = in_file_data['seed']
-
+            
     if opts.param_values is not None:
         arg_values = [float(val_str) for val_str in
             opts.param_values.split(',')]
@@ -308,7 +314,8 @@ def process_opts(opts, summary_stats = False):
         print("FILTERING SINGLETONS")
 
     # parameter defaults
-    iterable_params = parse_params(opts.params, simulator) # DICTIONARY of params to iterator over
+    parameters = parse_params(opts.params, simulator) # desired params
+    param_names = [p.name for p in parameters]
 
     # sample sizes
     if opts.sample_sizes is None: # get from VCF in case of one population
@@ -317,16 +324,15 @@ def process_opts(opts, summary_stats = False):
         sample_sizes = parse_sample_sizes(opts.sample_sizes)
 
     # generator
-    gen = generator.Generator(simulator, iterable_params, sample_sizes,
+    gen = generator.Generator(simulator, param_names, sample_sizes,
         opts.seed, mirror_real=real, reco_folder=opts.reco_folder)
 
     if opts.data_h5 is None:
-        params = ParamSet(simulator, iterable_params=[]) # keep all params
         # "real data" is simulated with fixed params
-        iterator = generator.Generator(simulator, params, sample_sizes,
+        iterator = generator.Generator(simulator, param_names, sample_sizes,
             opts.seed) # don't need reco_folder
 
-    return gen, iterator, iterable_params, sample_sizes # last used for disc.
+    return gen, iterator, parameters, sample_sizes # last used for disc.
 
 if __name__ == "__main__":
     # test major/minor and post-processing

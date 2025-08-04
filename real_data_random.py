@@ -19,8 +19,8 @@ import datetime
 #import discriminator
 
 # our imports
-import global_vars
-import util
+from . import global_vars
+from . import util
 
 class Region:
 
