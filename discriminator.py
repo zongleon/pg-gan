@@ -5,23 +5,35 @@ Date: 2/4/21
 """
 
 # python imports
-import tensorflow as tf
+from importlib.util import find_spec
+
+if find_spec("jax") is not None:
+    import jax.numpy as jnp # type: ignore
+    reduce_sum = jnp.sum
+elif find_spec("tensorflow") is not None:
+    import tensorflow as tf # type: ignore
+    reduce_sum = tf.math.reduce_sum
+    
 
 from keras.layers import Dense, Flatten, Conv1D, Conv2D, \
     MaxPooling2D, AveragePooling1D, Dropout, Concatenate, Layer
 from keras import Model
+from keras.saving import register_keras_serializable
 
+@register_keras_serializable()
 class ReduceSum(Layer):
     # SM: I think I do not need build since there are no weights
 
     def call(self, x):
-        return tf.math.reduce_sum(x, axis=1)
-    
+        return reduce_sum(x, axis=1)
+
+@register_keras_serializable()    
 class OnePopModel(Model):
     """Single population model - based on defiNETti software."""
 
     def __init__(self, **kwargs):#, pop, seed, saved_model=None):        
         super(OnePopModel, self).__init__()
+        self.fc_size = kwargs.get("fc_size", 64)
 
         # it is (1,5) for permutation invariance (shape is n X SNPs)
         self.conv1 = Conv2D(32, (1, 5), activation='relu')
@@ -29,11 +41,11 @@ class OnePopModel(Model):
         self.pool = MaxPooling2D(pool_size = (1,2), strides = (1,2))
 
         self.flatten = Flatten()
-        self.dropout = Dropout(rate=0.0) # changed from 0.5 for experiment
+        self.dropout = Dropout(rate=0.0)
 
-        self.fc1 = Dense(kwargs["fc_size"], name="fc1", activation='relu') # changed from 128
-        self.fc2 = Dense(kwargs["fc_size"], name="fc2", activation='relu') # changed from 128
-        self.dense3 = Dense(1)#2, activation='softmax') # two classes
+        self.fc1 = Dense(self.fc_size, name="fc1", activation='relu') # changed from 128
+        self.fc2 = Dense(self.fc_size, name="fc2", activation='relu') # changed from 128
+        self.dense3 = Dense(1)
 
     def call(self, x, training=None):
         """x is the genotype matrix, dist is the SNP distances"""
@@ -68,16 +80,16 @@ class OnePopModel(Model):
         x = self.fc2(x)
         return x 
 
-    def build_graph(self, gt_shape):
-        """This is for testing, based on TF tutorials"""
-        gt_shape_nobatch = gt_shape[1:]
-        self.build(gt_shape) # make sure to call on shape with batch
-        gt_inputs = tf.keras.Input(shape=gt_shape_nobatch)
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'fc_size': self.fc_size
+        })
+        return config
 
-        if not hasattr(self, 'call'):
-            raise AttributeError("User should define 'call' method!")
-
-        _ = self.call(gt_inputs)
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
 
 class TwoPopModel(Model):
     """Two population model"""
